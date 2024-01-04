@@ -3,7 +3,11 @@
 (** The type of variable names. *)
 type name = string
 
-(** MiniHaskell types. *)
+(** The type for mixfix strings. *)
+type mixfix_string = string 
+(* Should look like if_then_else_ . TODO! Think about if we can really infer Arity + Fixity*)
+
+(** Mixfix types. *)
 type htype =
   | TInt (** integer [int] *)
   | TBool (** booleans [bool] *)
@@ -28,7 +32,7 @@ type expr =
 type toplevel_cmd =
   | TopExpr of expr      (** an expression to be evaluated *)
   | Def of name * expr   (** toplevel definition [let x = e] *)
-  | Mixfix of Mixfix.t   (** New mixfix state *)
+  | MixfixDef of mixfix_string * int * expr   (** New mixfix state *)
   | Quit                 (** exit toplevel [$quit] *)
 
 (** Conversion from a type to a string *)
@@ -47,7 +51,7 @@ let string_of_type ty =
     to_str (-1) ty
 
 (** Conversion from an expression to a string *)
-let string_of_expr e =
+let string_of_expr (e:expr) =
   let rec to_str n e =
     let (m, str) =
       match e with
@@ -60,16 +64,6 @@ let string_of_expr e =
 	| Snd e ->           (9, "snd " ^ (to_str 9 e))
 	| Apply (_, _) ->   (10, "<app>")
 	    (* (9, (to_str 8 e1) ^ " " ^ (to_str 9 e2)) *)
-	| Times (e1, e2) ->  (8, (to_str 7 e1) ^ " * " ^ (to_str 8 e2))
-	| Divide (e1, e2) -> (8, (to_str 7 e1) ^ " / " ^ (to_str 8 e2))
-	| Mod (e1, e2) ->    (8, (to_str 7 e1) ^ " % " ^ (to_str 8 e2))
-	| Plus (e1, e2) ->   (7, (to_str 6 e1) ^ " + " ^ (to_str 7 e2))
-	| Minus (e1, e2) ->  (7, (to_str 6 e1) ^ " - " ^ (to_str 7 e2))
-	| Cons (e1, e2) ->   (6, (to_str 6 e1) ^ " :: " ^ (to_str 5 e2))
-	| Equal (e1, e2) ->  (5, (to_str 5 e1) ^ " = " ^ (to_str 5 e2))
-	| Less (e1, e2) ->   (5, (to_str 5 e1) ^ " < " ^ (to_str 5 e2))
-	| If (e1, e2, e3) -> (4, "if " ^ (to_str 4 e1) ^ " then " ^
-				(to_str 4 e2) ^ " else " ^ (to_str 4 e3))
 	| Match (e1, ty, e2, x, y, e3) ->
 	    (3, "match " ^ (to_str 3 e1) ^ " with " ^
 	       "[" ^ (string_of_type ty) ^ "] -> " ^ (to_str 3 e2) ^ " | " ^
@@ -87,17 +81,8 @@ let string_of_expr e =
 (** [subst [(x1,e1);...;(xn;en)] e] replaces in [e] free occurrences
     of variables [x1], ..., [xn] with expressions [e1], ..., [en]. *)
 let rec subst s = function
-  |  (Var x) as e -> (try List.assoc x s with Not_found -> e)
-  | (Int _ | Bool _ | Nil _) as e -> e
-  | Times (e1, e2) -> Times (subst s e1, subst s e2)
-  | Divide (e1, e2) -> Divide (subst s e1, subst s e2)
-  | Mod (e1, e2) -> Mod (subst s e1, subst s e2)
-  | Plus (e1, e2) -> Plus (subst s e1, subst s e2)
-  | Minus (e1, e2) -> Minus (subst s e1, subst s e2)
-  | Equal (e1, e2) -> Equal (subst s e1, subst s e2)
-  | Cons (e1, e2) -> Cons  (subst s e1, subst s e2)
-  | Less (e1, e2) -> Less (subst s e1, subst s e2)
-  | If (e1, e2, e3) -> If (subst s e1, subst s e2, subst s e3)
+  | (Var x) as e -> (try List.assoc x s with Not_found -> e)
+  | (Int _ | Bool _) as e -> e
   | Fun (x, ty, e) -> let s' = List.remove_assoc x s in Fun (x, ty, subst s' e)
   | Rec (x, ty, e) -> let s' = List.remove_assoc x s in Rec (x, ty, subst s' e)
   | Match (e1, ty, e2, x, y, e3) ->

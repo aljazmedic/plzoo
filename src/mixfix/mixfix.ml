@@ -13,7 +13,7 @@ type t = operator list
 
 let empty = []
 
-let add_operator xs prec asc p = failwith "add_operator: not implemented"
+let add_operator tokens prec fixity p = failwith "add_operator: not implemented"
 
 let rec expr p lst =
   (* here main work happens, we have a list of exprs *)
@@ -25,6 +25,7 @@ and basic p = function
   | Fun (x, ty, e) -> Syntax.Fun (x, ty, expr p e)
   | _ -> failwith "basic: missing cases"
 
+(* **Should** run toplevel command. This language passes current Mixfix state *)
 let toplevel_cmd p = function
   | Input.TopExpr e -> Syntax.Expr (expr p e)
   | Input.Def (x, e) -> Syntax.Def (x, expr p e)

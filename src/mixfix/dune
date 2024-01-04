@@ -1,5 +1,5 @@
 (executable
- (name minihaskell)
+ (name mixfix)
  (libraries zoo)
  (promote
   (until-clean)

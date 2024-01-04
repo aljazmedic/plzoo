@@ -1,6 +1,6 @@
-module MiniHaskell = Zoo.Main(struct
+module Mixfix = Zoo.Main(struct
 
-  let name = "MiniHaskell"
+  let name = "Mixfix"
 
   type command = Syntax.toplevel_cmd
 
@@ -29,17 +29,19 @@ module MiniHaskell = Zoo.Main(struct
        Interpret.print_result !print_depth v ;
        Zoo.print_info "@." ;
        {mixfix; ctx; env}
-    | Syntax.Def (x, e) -
+    | Syntax.Def (x, e) ->
        (* type check [e], and store it unevaluated! *)
        let ty = Type_check.type_of ctx e in
        Zoo.print_info "val %s : %s@." x (Syntax.string_of_type ty) ;
-       { mixfix = mixfix
-       ; ctx = (x,ty)::ctx,
-       ; env = (x, ref (Interpret.VClosure (env,e)))::env) }
-    | Syntax.Mixfix p ->
+       { 
+        mixfix = mixfix
+        ; ctx = (x,ty)::ctx
+        ; env = (x, ref (Interpret.VClosure (env,e)))::env
+      }
+    | Syntax.MixfixDef (tokens, precedence_index, e) ->
       { mixfix = p ; ctx ; env }
     | Syntax.Quit -> raise End_of_file
 
 end) ;;
 
-MiniHaskell.main () ;;
+Mixfix.main () ;;
