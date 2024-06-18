@@ -1,0 +1,32 @@
+
+
+mixfix 1 _iscool ;;
+let _iscool = fun n : int => $eq ($mod n 2) 0 ;;
+
+let t = 6 iscool ;;
+
+
+--
+-- -- Uporaba FILE
+-- Parsing [6;iscool]
+-- Syntax error: Could not parse.
+-- Parsing applications [1]: 6, iscool
+-- Parsed applications [2]:
+-- Parsing applications [1]: 6
+-- Parsed applications [2]: 6
+-- -- Uporaba REPL
+-- Mixfix> let t = (6 iscool) ;;
+-- Parsing [[6;iscool]]
+-- Parsing applications [1]: [6;iscool]
+-- Parsing applications [1]: 6, iscool
+-- Parsed applications [2]:
+-- Parsing applications [1]: 6
+-- Parsed applications [2]: 6
+-- Parsed applications [2]: _iscool 6
+-- Parsing applications [1]: [6;iscool]
+-- Parsing applications [1]: 6, iscool
+-- Parsed applications [2]:
+-- Parsing applications [1]: 6
+-- Parsed applications [2]: 6
+-- Parsed applications [2]: _iscool 6
+-- val t : bool
