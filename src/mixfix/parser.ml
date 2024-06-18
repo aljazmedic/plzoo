@@ -33,7 +33,7 @@ end = struct
 
   let ( let* ) = ( >>= )
 
-  (** Fail parser directly fails. (Returns [[]]) *)
+  (** Fail parser directly fails. *)
   let fail = fun _ -> Seq.empty
 
   (** Gets next token from the stream *)
@@ -42,20 +42,18 @@ end = struct
     | None -> Seq.empty
     | Some (t,ts) -> Seq.return (t, ts)
 
+  (** End of stream parser. Succeeds if the input stream is empty. *)
    let eof inp =
      match Seq.uncons inp with
      | None -> (Seq.return ((), Seq.empty))
      | Some _ -> Seq.empty
 
+  (** Or. Option to choose from either parse result of [p1] pr [p2] *)
   let ( ++ ) c1 c2 inp = Seq.append (c1 inp) (c2 inp)
 end
 
 open ParserMonad
 
-let check_success lst =
-  match Seq.uncons lst with
-  | None -> failwith "could not parse"
-  | Some (a,tail) -> a
 
 let return_many xs inp = Seq.map (fun x -> (x, inp)) xs
 
@@ -70,29 +68,27 @@ let recursively build =
   self
 
 (** Map. [map f p] Creates a parser that maps f over result of p *)
-let map f p = flat_map (fun x -> Seq.return (f x)) p
+let map f p = 
+  let* x = p in
+  return @@ f x
 
 (** Map_opt. [map_opt f p] Creates a parser that maps f over result of p, but only if f is not None *)
-let map_opt f p = flat_map
-  (fun x -> match f x with
-  | Some t -> Seq.return t
-  | None -> Seq.empty) p
+let map_opt f p = 
+  let* x = p in
+  match f x with
+  | Some t -> return t
+  | None -> fail
 
 let kw k =
   let* v = get in
   if v = k then return v
   else fail
 
-(** Option to choose from either parse result of [p1] pr [p2] *)
-let ( || ) p1 p2 = p1 ++ p2 ;;
-
 (** Concatenation of parsers, returning a pair *)
 let ( @@@ ) p1 p2 =
   let* x = p1 in
   let* y = p2 in
   return (x,y)
-
-let sequ a b = a @@@ b  (* TODO! To gre VEN*)
 
 (** Concatenation of parsers, discarding left *)
 let ( <@@ ) p1 p2 =
@@ -105,10 +101,6 @@ let ( @@< ) p1 p2 =
   let* x = p1 in
   let* _ = p2 in
   return x
-
-let mapf f p =
-  let* x = p in
-  return_many (f x)
 
 (** Kleene star *)
 let rec iter p = (
@@ -321,5 +313,16 @@ and get_env_parser env : (Presyntax.expr, Syntax.expr) t =
   in
   (graph_parser env.operators) @@< eof
 
-  (* let t = graph_parser g @@< Eof
-in string_of_parser t |> print_endline; t *)
+let check_success lst =
+  let rec fmt_ambigous ambg =
+    match Seq.uncons ambg with
+    | None -> ""
+    | Some (a,tail) -> (Printf.sprintf "+ %s\n%s" (Syntax.string_of_expr a)) (fmt_ambigous tail)
+  in
+  match Seq.uncons lst  with
+  | None -> Zoo.error ?kind:(Some "Syntax error") "Could not parse."
+  | Some(a, tail) -> 
+      match Seq.uncons tail with
+      | None -> a
+      | _ -> Zoo.error ?kind:(Some "Syntax error") "Ambiguous parse:\n + %s" (fmt_ambigous tail)
+  
