@@ -38,12 +38,7 @@ module Mixfix = Zoo.Main(struct
         }
       | Syntax.Mixfix (prec, operator)-> 
        (* Add operator x with precedence prec and expression e to environment.operators *)
-       begin match Precedence.find_duplicate_token operator.tokens state.parser_context.operators with
-        | Some (prec, token, op2) -> 
-            Zoo.error ?kind:(Some "Operator error") "Duplicate token '%s' in operator %s. @." token (Syntax.string_of_op op2)
-        | None ->
-            Environment.{state with parser_context = register_operator state.parser_context (prec, operator) }
-        end
+       {state with parser_context = Mixer.register_operator (prec, operator) state.parser_context }
       | Syntax.Quit -> raise End_of_file
       | Syntax.GraphCmd gc ->
           match gc with 

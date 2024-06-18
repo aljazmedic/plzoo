@@ -25,9 +25,6 @@ let empty = {
 
 let debug = true
 
-let register_operator (ctx:parser_context) (prec, op) =
-  let operators = Precedence.add_operator ctx.operators prec op in
-  {ctx with operators = operators}
 
 let add_identifier identifier (ctx:parser_context)  =
   let new_identifiers = IdentifierSet.add identifier ctx.known_identifiers in
