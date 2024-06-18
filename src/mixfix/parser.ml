@@ -54,6 +54,13 @@ end
 
 open ParserMonad
 
+let first p inp =
+  match Seq.uncons (p inp) with
+  | None -> Seq.empty
+  | Some (x, _) -> Seq.return x
+
+(** Fallback or. Option to choose from either parse result of [p1] pr [p2] *)
+let ( +++ ) p1 p2 = first (p1 ++ p2)
 
 let return_many xs inp = Seq.map (fun x -> (x, inp)) xs
 
@@ -107,14 +114,13 @@ let rec iter p = (
   let* x = p in
   let* xs = iter p in
   return @@ Seq.cons x xs
-) ++ (return @@ Seq.empty)
+) ++ (return @@ Seq.empty) (* Must not replace with +++ *)
 
 (** Kleene plus *)
 let iter1 p =
   let* x = p in
   let* xs = iter p in
   return @@ Seq.cons x xs
-
 
 let rec between p = function
   | [] -> assert false
@@ -299,17 +305,17 @@ and get_env_parser env : (Presyntax.expr, Syntax.expr) t =
               return @@ seq_fold_right
                 (fun args argZ -> make_operator_app @@ cons_back args argZ)
                 head_apps argZ
-  
+
         in
         match operators with
         | [] -> Seq.empty
-        | o :: os -> (operator_parser stronger o) ++ (prec_lvl_parser stronger os) @@ inp
+        | o :: os -> (operator_parser stronger o) +++ (prec_lvl_parser stronger os) @@ inp
       in
       match g with
       | [] -> app_parser env inp
       | p :: ps ->
         let sucs = graph_parser ps in
-        (prec_lvl_parser sucs (snd p)) ++ sucs @@ inp
+        (prec_lvl_parser sucs (snd p)) +++ sucs @@ inp
   in
   (graph_parser env.operators) @@< eof
 
