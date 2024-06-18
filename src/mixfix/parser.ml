@@ -29,7 +29,7 @@ end = struct
 
   let ( >>= ) (p : ('token, 'a) t) (f : 'a -> ('token, 'b) t) : ('token, 'b) t =
     fun inp ->
-      Seq.flat_map (fun (x, inp) -> f x inp) (p inp)
+      Seq.flat_map (fun (x, inp') -> (f x) inp') (p inp)
 
   let ( let* ) = ( >>= )
 
@@ -57,11 +57,6 @@ let check_success lst =
   | None -> failwith "could not parse"
   | Some (a,tail) -> a
 
-let first (p:('a,'b) t) =
-  fun inp -> match Seq.uncons (p inp) with
-    | None -> Seq.empty
-    | Some(a, _) -> Seq.return a
-
 let return_many xs inp = Seq.map (fun x -> (x, inp)) xs
 
 (** Flat Map. [f p] Creates a parser that maps f over result of p and returns all the individual results. *)
@@ -85,7 +80,8 @@ let map_opt f p = flat_map
 
 let kw k =
   let* v = get in
-  if v == k then return v
+  ("kw '"^ Presyntax.string_of_expr k ^"' called with: " ^ Presyntax.string_of_expr v) |> print_endline;
+  if v == k then (print_endline "AA"; return v)
   else fail
 
 (** Option to choose from either parse result of [p1] pr [p2] *)
@@ -128,15 +124,28 @@ let iter1 p =
   let* xs = iter p in
   return @@ Seq.cons x xs
 
-let between p =
-  let rec between p = function
-  | [] -> assert false
-  | [ k ] -> kw k <@@ (return Seq.empty)
-  | k :: ks -> kw k <@@ (
-    let* arg0 = p in
-    let* args = between p ks in
-    return @@ Seq.cons arg0 args)
-in (between p)
+let between p ks = 
+  let rec between p ts inp = 
+    (print_endline @@ "between called with: " ^
+    (ts |> List.map Presyntax.string_of_expr |> String.concat ", ") ^
+    " first: " ^(inp |> Seq.map Presyntax.string_of_expr |> List.of_seq |> String.concat ", "));
+    match ts with
+    | [] -> assert false
+    | [ k ] -> 
+      (let* k' = get in
+      if k' = k then return Seq.empty
+      else fail) inp
+      
+    | k :: ks -> 
+      (let* k' = get in
+        if k' <> k then fail
+        else
+          (let* arg0 = p in
+          arg0 |> Syntax.string_of_expr |> print_endline;
+          let* args = between p ks in
+          return @@ Seq.cons arg0 args)) inp
+    in
+  between p (List.map (fun x -> Presyntax.Var x) ks)
 
 (* Auxiliary functions *)
 let cons_back xs x = Seq.append xs (Seq.return x)
@@ -151,18 +160,20 @@ let seq_fold_right f s acc =
 (* Core of parsing *)
 
 let rec expr (env : Environment.parser_context) e =
+  print_endline @@ "expr called with: " ^ Presyntax.string_of_expr e;
   let open ListMonad in
   match e with
   | Presyntax.Var x ->
     if Environment.identifier_present env x then
-      Seq.return @@ Syntax.Var x
+      (print_endline @@ "Identifier: "^ x; Seq.return @@ Syntax.Var x)
     else
       Seq.empty
   | Presyntax.Seq es ->
-    Seq.iter (fun e -> print_string (Presyntax.string_of_expr e ^ " ")) es;
-    print_newline ();
-    let context_parser = get_env_parser env in
-    let* tt = context_parser es in
+    Seq.iter (fun e -> 
+    print_string (Presyntax.string_of_expr e ^ " ")) es; print_newline ();
+    let seq_parser = get_env_parser env in
+    let* tt = seq_parser es in
+    print_endline @@ "Seq parser returned: " ^ Syntax.string_of_expr (fst tt);
     return @@ fst tt
   | Presyntax.Int k -> return @@ Syntax.Int k
   | Presyntax.Bool b -> return @@ Syntax.Bool b
@@ -256,17 +267,19 @@ and app_parser env : (Presyntax.expr, Syntax.expr) t =
 
 and get_env_parser env :
   (Presyntax.expr, Syntax.expr) t =
-  let rec graph_parser (g : Precedence.graph) inp =
-      let rec precedence_parser stronger operators =
+  let rec graph_parser (g: Precedence.graph) inp =
+      let rec prec_lvl_parser stronger operators inp =
         let operator_parser stronger_parser op =
           let op_name = Syntax.Var (Syntax.name_of_operator op) in
           let make_operator_app = Syntax.make_app op_name in
-          let between_parser = between (graph_parser g) @@
-            List.map (fun x -> Presyntax.Var x) op.tokens in
+          let between_parser = between (graph_parser g) op.tokens 
+        in
           match op with
 
           | { fx = Closed; _ } ->
-            map make_operator_app between_parser
+            let* args = between_parser in
+            (print_endline @@ "closed Args:" ^ String.concat ", " @@ List.of_seq (Seq.map Syntax.string_of_expr args);
+            return @@ make_operator_app args)
 
           | { fx = Postfix; _ } ->
             map
@@ -327,14 +340,14 @@ and get_env_parser env :
                 stronger_parser)
         in
         match operators with
-        | [] -> fail
-        | o :: os -> (operator_parser stronger o) ++ (precedence_parser stronger os)
+        | [] -> Seq.empty
+        | o :: os -> (operator_parser stronger o) ++ (prec_lvl_parser stronger os) @@ inp
       in
       match g with
       | [] -> app_parser env inp
       | p :: ps ->
         let sucs = graph_parser ps in
-        (precedence_parser sucs (snd p)) ++ sucs @@ inp
+        (prec_lvl_parser sucs (snd p)) ++ sucs @@ inp
   in
   (graph_parser env.operators) @@< eof
 

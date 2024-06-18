@@ -13,7 +13,7 @@ let determine_fixity assoc s =
 
 let create_operator assoc name =
   let fx = determine_fixity assoc name in
-    let tokens = (List.filter (fun x -> x <> "") (String.split_on_char '_' name)) in
+    let tokens =  name |> String.split_on_char '_' |> List.filter (fun x -> x <> "") in
     match tokens with 
     | [] -> Zoo.error ?kind:(Some "Operator error") "Empty operator"
     | tokens -> Syntax.{tokens ; fx }
@@ -22,10 +22,12 @@ let toplevel_cmd (env:Environment.t) (cmd: Presyntax.toplevel_cmd): Syntax.tople
   match cmd with
 
   | Presyntax.Expr e ->
+    print_endline @@ "Parsing " ^ Presyntax.string_of_expr e ;
     let e = Parser.(check_success @@ expr env.parser_context e) in
     Syntax.Expr e
 
   | Presyntax.Def (name,  e) ->
+    print_endline @@ "Parsing " ^ Presyntax.string_of_expr e ;
     let e = Parser.(check_success @@ expr env.parser_context e) in
     Syntax.Def (name, e)
 
@@ -35,4 +37,4 @@ let toplevel_cmd (env:Environment.t) (cmd: Presyntax.toplevel_cmd): Syntax.tople
   | Presyntax.Quit ->
      Syntax.Quit
 
-let file env = List.map (fun x -> toplevel_cmd env x)
+let file env = List.map @@ toplevel_cmd env
