@@ -29,7 +29,7 @@ let _but_mod = fun n m : int => $mod n m
 mixfix 3 if_then_else_
 let if_then_else_ = fun (b:bool) (a c:int) => $cond b a c
 
-mixfix right 3 _if_else_
+mixfix right 4 _if_else_
 let _if_else_ = fun (a:int) (p:bool) (b:int) => $cond p a b
 
 (fun if:int => (if if false else (if false then 9 else 2))) 3

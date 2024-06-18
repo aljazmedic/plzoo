@@ -1,6 +1,9 @@
 (** Abstract syntax *)
 
-type associativity = LeftAssoc | RightAssoc | NonAssoc
+type associativity =
+  | LeftAssoc
+  | RightAssoc
+  | NonAssoc
 
 let string_of_assoc = function
   | LeftAssoc -> "left"
@@ -9,7 +12,11 @@ let string_of_assoc = function
 
 (** The type of fixities. *)
 
-type fixity = Prefix | Postfix | Infix of associativity | Closed
+type fixity = 
+  | Prefix
+  | Postfix
+  | Infix of associativity
+  | Closed
 
 let string_of_fixity = function
   | Prefix -> "prefix"
