@@ -32,7 +32,8 @@ module Mixfix = Zoo.Main(struct
        Zoo.print_info "val %s : %s@." x (Presyntax.string_of_type ty) ;
         {
           context = (x,ty)::state.context; 
-          parser_context = Environment.add_identifier state.parser_context x;
+          parser_context = state.parser_context |> 
+            Environment.add_identifier x;
           env = (x, ref (Interpret.VClosure (state.env,e)))::state.env
         }
       | Syntax.Mixfix (prec, operator)-> 

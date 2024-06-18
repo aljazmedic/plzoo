@@ -194,7 +194,8 @@ let rec expr (env : Environment.parser_context) e =
     let* e3 = expr env e3 in
     return @@ Syntax.If (e1, e2, e3)
   | Presyntax.Fun (name, ht, e) ->
-    let env = Environment.add_identifier env name in
+    let env = env |> 
+      Environment.add_identifier name in
     let* e = expr env e in
     return @@ Syntax.Fun (name, ht, e)
   | Presyntax.Pair (e1, e2) ->
@@ -217,11 +218,9 @@ let rec expr (env : Environment.parser_context) e =
   | Presyntax.Match (e, ht, e1, x, y, e2) ->
     let* e = expr env e in
     let* e1 = expr env e1 in
-    let env2 =
-      Environment.add_identifier
-        (Environment.add_identifier env y)
-        x
-    in
+    let env2 = env |> 
+      Environment.add_identifier x |> 
+      Environment.add_identifier y in
     let* e2 = expr env2 e2 in
     return @@ Syntax.Match (e, ht, e1, x, y, e2)
 
