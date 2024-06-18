@@ -12,19 +12,19 @@ rule token = parse
   | '-'?['0'-'9']+      { INT (int_of_string(lexeme lexbuf)) }
   | "bool"              { TBOOL }
   | "false"             { FALSE }
-  | "fst"               { FST }
+  | "$fst"              { FST }
   | "fun"               { FUN }
   | "$cond"             { COND }
   | "int"               { TINT }
   | "is"                { IS }
   | "let"               { LET }  
-  | "mixfix"            { MIXFIX }  
-  | "left"              { LEFT }  
-  | "right"             { RIGHT }  
+  | "mixfix"            { MIXFIX }
+  | "mixfixl"           { MIXFIXL }
+  | "mixfixr"           { MIXFIXR }
   | "list"              { TLIST }
   | "match"             { MATCH }
   | "rec"               { REC }
-  | "snd"               { SND }
+  | "$snd"              { SND }
   | "true"              { TRUE }
   | ":quit"             { QUIT }
   | "with"              { WITH }

@@ -12,7 +12,7 @@
 %token TINT TBOOL TLIST TARROW
 %token <Presyntax.name> VAR
 %token <int> INT
-%token MIXFIX LEFT RIGHT
+%token MIXFIX MIXFIXL MIXFIXR
 %token TRUE FALSE
 %token PLUS
 %token MINUS
@@ -71,15 +71,15 @@ def:
     { Def ($2, $4) }
 
 mixfix:
-  | MIXFIX fixity INT VAR
-    { Mixfix ($2, $3, $4) }
+  | mixfix_assoc INT VAR
+    { Mixfix ($1, $2, $3) }
 
-fixity:
-  | LEFT
+mixfix_assoc:
+  | MIXFIXL
     { LeftAssoc }
-  | RIGHT
+  | MIXFIXR
     { RightAssoc }
-  |
+  | MIXFIX
     { NonAssoc }
 
 vars:
