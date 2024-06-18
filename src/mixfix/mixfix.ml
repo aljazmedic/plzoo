@@ -40,15 +40,16 @@ module Mixfix = Zoo.Main(struct
        (* Add operator x with precedence prec and expression e to environment.operators *)
        begin match Precedence.find_duplicate_token operator.tokens state.parser_context.operators with
         | Some (prec, token, op2) -> 
-            Zoo.print_info "Duplicate token '%s' in operator %s. @." token (Syntax.string_of_op op2) ;
-            state
+            Zoo.error ?kind:(Some "Operator error") "Duplicate token '%s' in operator %s. @." token (Syntax.string_of_op op2)
         | None ->
             Environment.{state with parser_context = register_operator state.parser_context (prec, operator) }
         end
       | Syntax.Quit -> raise End_of_file
-      | Syntax.GraphCmd Syntax.PrintGraph -> Zoo.print_info "%s\n" (Precedence.string_of_graph state.parser_context.operators);
+      | Syntax.GraphCmd gc ->
+          match gc with 
+          | Syntax.PrintGraph -> Zoo.print_info "%s\n" (Precedence.string_of_graph state.parser_context.operators);
           state
-      | Syntax.GraphCmd Syntax.ClearGraph -> {state with parser_context = Environment.empty.parser_context}
+          | Syntax.ClearGraph -> {state with parser_context = Environment.empty.parser_context}
 end) ;;
 
 Mixfix.main () ;;
