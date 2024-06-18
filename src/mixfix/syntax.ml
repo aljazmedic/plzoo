@@ -75,6 +75,7 @@ type toplevel_cmd =
   | Mixfix of int * operator
   | Quit
   | GraphCmd of graph_cmd
+  | Nop
 
 let rec make_app head args = 
   match Seq.uncons args with

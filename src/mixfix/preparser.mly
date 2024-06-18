@@ -59,6 +59,10 @@ topentry:
 toplevel:
   | topentry EOF
     { $1 }
+  | topentry SEMICOLON2 EOF
+    { $1 }
+  | EOF
+    { Nop }
 
 cmd:
   | CMD_QUIT

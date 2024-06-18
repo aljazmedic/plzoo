@@ -46,7 +46,8 @@ type toplevel_cmd =
   | Mixfix of associativity * int * string
   | Quit               (** exit toplevel [:quit] *)
   | GraphCmd of string (** manipulate with mixfix [:graph] *)
-
+  | Nop
+  
 (** Conversion from a type to a string *)
 let string_of_type ty =
   let rec to_str n ty =

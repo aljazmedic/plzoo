@@ -40,6 +40,8 @@ let toplevel_cmd (env:Environment.t) (cmd: Presyntax.toplevel_cmd): Syntax.tople
 
   | Presyntax.Quit ->
      Syntax.Quit
+  | Presyntax.Nop ->
+     Syntax.Nop
   | Presyntax.GraphCmd g ->
     Syntax.GraphCmd (match g with
       | "print" -> Syntax.PrintGraph

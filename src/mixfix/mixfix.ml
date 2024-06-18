@@ -39,6 +39,7 @@ module Mixfix = Zoo.Main(struct
       | Syntax.Mixfix (prec, operator)-> 
        (* Add operator x with precedence prec and expression e to environment.operators *)
        {state with parser_context = Mixer.register_operator (prec, operator) state.parser_context }
+      | Syntax.Nop -> state
       | Syntax.Quit -> raise End_of_file
       | Syntax.GraphCmd gc ->
           match gc with 
