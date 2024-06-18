@@ -26,7 +26,7 @@ rule token = parse
   | "rec"               { REC }
   | "$snd"              { SND }
   | "true"              { TRUE }
-  | ":quit"             { CMD_QUIT }
+  | ":q""uit"?          { CMD_QUIT }
   | ":graph"            { CMD_GRAPH }
   | "with"              { WITH }
   | "->"                { TARROW }
