@@ -12,9 +12,9 @@ module Mixfix = Zoo.Main(struct
 
   let initial_environment: environment = Environment.empty
 
-  let file_parser = Some (fun environ  s -> Mixer.file environ (Preparser.file Lexer.token s) )
+  let file_parser = Some (fun environ s -> Mixer.toplevel_cmds environ (Preparser.file Lexer.token s) )
 
-  let toplevel_parser = Some (fun environ  s -> Mixer.toplevel_cmd environ (Preparser.toplevel Lexer.token s) )
+  let toplevel_parser = Some (fun environ s -> Mixer.toplevel_cmd environ (Preparser.toplevel Lexer.token s) )
 
   let exec (state:environment) = function
     | Syntax.Expr e ->
@@ -32,7 +32,7 @@ module Mixfix = Zoo.Main(struct
        Zoo.print_info "val %s : %s@." x (Presyntax.string_of_type ty) ;
         {
           context = (x,ty)::state.context; 
-          parser_context = Environment.add_identifier_token state.parser_context x;
+          parser_context = Environment.add_identifier state.parser_context x;
           env = (x, ref (Interpret.VClosure (state.env,e)))::state.env
         }
       | Syntax.Mixfix (prec, operator)-> 
@@ -42,12 +42,12 @@ module Mixfix = Zoo.Main(struct
             Zoo.print_info "Duplicate token '%s' in operator %s. @." token (Syntax.string_of_op op2) ;
             state
         | None ->
-          let s = Environment.{state with parser_context = register_operator state.parser_context (prec, operator) } in 
-              Environment.dprintln (Precedence.string_of_graph s.parser_context.operators); (*** DEBUG ***)
-            s
+            Environment.{state with parser_context = register_operator state.parser_context (prec, operator) }
         end
       | Syntax.Quit -> raise End_of_file
-      
+      | Syntax.GraphCmd Syntax.PrintGraph -> Zoo.print_info "%s\n" (Precedence.string_of_graph state.parser_context.operators);
+          state
+      | Syntax.GraphCmd Syntax.ClearGraph -> {state with parser_context = Environment.empty.parser_context}
 end) ;;
 
 Mixfix.main () ;;

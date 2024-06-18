@@ -45,7 +45,7 @@ type toplevel_cmd =
   | Def of name * expr (** toplevel definition [let x = e] *)
   | Mixfix of associativity * int * string
   | Quit               (** exit toplevel [:quit] *)
-  (* | ClearOperators    (** reset built parser [:clear] *) *)
+  | GraphCmd of string (** manipulate with mixfix [:graph] *)
 
 (** Conversion from a type to a string *)
 let string_of_type ty =

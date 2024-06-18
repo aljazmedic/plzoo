@@ -4,12 +4,12 @@ type t = int * Syntax.operator list
 type graph = t list
 
 let string_of_precedence (p, lst) =
-  Printf.sprintf "Precedence %d -> %s" p (
-    String.concat "\n  " (List.map Syntax.string_of_op lst)
+  Printf.sprintf "Precedence %d ->\n\t%s" p (
+    String.concat "\n\t" (List.map Syntax.string_of_op lst)
   )
 
 let string_of_graph (g:graph) =
-  String.concat "\n" (List.map string_of_precedence g)
+  String.concat "" @@ List.map (fun p -> (string_of_precedence p) ^ "\n") g
 
 let rec sucs (p:t) = function
   | [] -> []

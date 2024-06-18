@@ -36,5 +36,10 @@ let toplevel_cmd (env:Environment.t) (cmd: Presyntax.toplevel_cmd): Syntax.tople
 
   | Presyntax.Quit ->
      Syntax.Quit
+  | Presyntax.GraphCmd g ->
+    Syntax.GraphCmd (match g with
+      | "print" -> Syntax.PrintGraph
+      | "clear" -> Syntax.ClearGraph
+      | _ -> Zoo.error ?kind:(Some "Command error") "Unknown operator :graph command: '%s'" g)
 
-let file env = List.map @@ toplevel_cmd env
+let toplevel_cmds env = List.map @@ toplevel_cmd env

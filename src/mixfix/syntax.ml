@@ -64,13 +64,17 @@ type expr =
   | Match of expr * Presyntax.htype * expr * name * name * expr
       (** list decomposition [match e with [t] -> e1 | x::y -> e2] *)
 
+type graph_cmd =
+  | PrintGraph 
+  | ClearGraph
+
 (** Toplevel commands *)
 type toplevel_cmd =
   | Expr of expr       (** an expression to be evaluated *)
   | Def of name * expr (** toplevel definition [let x = e] *)
   | Mixfix of int * operator
   | Quit
-  (* | ClearOperators *)
+  | GraphCmd of graph_cmd
 
 let rec make_app head args = 
   match Seq.uncons args with
