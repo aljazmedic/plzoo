@@ -81,7 +81,7 @@ sig
   type environment
   val options : (Arg.key * Arg.spec * Arg.doc) list
   val initial_environment : environment
-  val file_parser : (environment -> Lexing.lexbuf -> command list) option
+  val file_parser : (environment -> Lexing.lexbuf -> environment * command list) option
   val toplevel_parser : (environment -> Lexing.lexbuf -> command) option
   val exec : environment -> command -> environment
 end
@@ -182,7 +182,7 @@ struct
   let use_file ctx (filename, _interactive) =
     match L.file_parser with
     | Some f ->
-       let cmds = read_file (wrap_syntax_errors (f ctx)) filename in
+       let (ctx, cmds) = read_file (wrap_syntax_errors (f ctx)) filename in
         List.fold_left L.exec ctx cmds
     | None ->
        fatal_error "Cannot load files, only interactive shell is available"

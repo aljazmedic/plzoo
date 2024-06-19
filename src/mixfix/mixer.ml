@@ -55,8 +55,24 @@ let register_operator (prec, operator) (ctx:Environment.parser_context) =
       Zoo.error ?kind:(Some "Operator error") "Duplicate token '%s' in operator %s. @." token (Syntax.string_of_op op2)
   | None ->
   (* End duplicate check *)
-    let operators = Precedence.add_operator ctx.operators prec operator in
-    {ctx with operators = operators}
+    {ctx with operators = Precedence.add_operator ctx.operators prec operator}
 
-let toplevel_cmds (env:Environment.t) cmdlist = 
-  List.map (fun cmd -> toplevel_cmd env cmd) cmdlist
+let toplevel_cmds (env:Environment.t) = 
+  (* List.map (fun cmd -> toplevel_cmd env cmd) cmdlist *)
+  let f (env', lst) pcmd = 
+    match toplevel_cmd env' pcmd with
+    | Syntax.Mixfix (prec, operator) -> (
+        { env' with 
+          parser_context = register_operator (prec, operator) env'.parser_context
+        }, lst
+      )
+    | Syntax.Def (x, _) as c -> (
+        { env' with
+          parser_context = env'.parser_context |> 
+            Environment.add_identifier x;
+        }, lst @ [c]
+      )
+    | c -> 
+      (env', lst @ [c])
+  in
+  List.fold_left f (env, [])

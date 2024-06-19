@@ -55,7 +55,7 @@ module type LANGUAGE =
     val initial_environment : environment
 
     (** A parser for parsing entire files *)
-    val file_parser : (environment -> Lexing.lexbuf -> command list) option
+    val file_parser : (environment -> Lexing.lexbuf -> environment * command list) option
 
     (** A parser for parsing one toplevel command *)
     val toplevel_parser : (environment -> Lexing.lexbuf -> command) option

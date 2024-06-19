@@ -6,7 +6,7 @@ module ListMonad = struct
 
   let ( >>= ) x f = Seq.concat_map f x
 
-  let ( let* ) = ( >>= )
+  let ( let@ ) = ( >>= )
 
   let fail = Seq.empty
 
@@ -141,84 +141,84 @@ let rec expr (env : Environment.parser_context) e =
     else
       Seq.empty
   | Presyntax.Seq es ->
-    let seq_parser = get_env_parser env in
-    let* tt = seq_parser es in
+    let seq_parser = get_env_parser env @@< eof in
+    let@ tt = seq_parser es in
     return @@ fst tt
   | Presyntax.Int k -> return @@ Syntax.Int k
   | Presyntax.Bool b -> return @@ Syntax.Bool b
   | Presyntax.Nil ht -> return @@ Syntax.Nil ht
   | Presyntax.Times (e1, e2) ->
-    let* e1 = expr env e1 in
-    let* e2 = expr env e2 in
+    let@ e1 = expr env e1 in
+    let@ e2 = expr env e2 in
     return @@ Syntax.Times (e1, e2)
   | Presyntax.Divide (e1, e2) ->
-    let* e1 = expr env e1 in
-    let* e2 = expr env e2 in
+    let@ e1 = expr env e1 in
+    let@ e2 = expr env e2 in
     return @@ Syntax.Divide (e1, e2)
   | Presyntax.Mod (e1, e2) ->
-    let* e1 = expr env e1 in
-    let* e2 = expr env e2 in
+    let@ e1 = expr env e1 in
+    let@ e2 = expr env e2 in
     return @@ Syntax.Mod (e1, e2)
   | Presyntax.Plus (e1, e2) ->
-    let* e1 = expr env e1 in
-    let* e2 = expr env e2 in
+    let@ e1 = expr env e1 in
+    let@ e2 = expr env e2 in
     return @@ Syntax.Plus (e1, e2)
   | Presyntax.Minus (e1, e2) ->
-    let* e1 = expr env e1 in
-    let* e2 = expr env e2 in
+    let@ e1 = expr env e1 in
+    let@ e2 = expr env e2 in
     return @@ Syntax.Minus (e1, e2)
   | Presyntax.Equal (e1, e2) ->
-    let* e1 = expr env e1 in
-    let* e2 = expr env e2 in
+    let@ e1 = expr env e1 in
+    let@ e2 = expr env e2 in
     return @@ Syntax.Equal (e1, e2)
   | Presyntax.Less (e1, e2) ->
-    let* e1 = expr env e1 in
-    let* e2 = expr env e2 in
+    let@ e1 = expr env e1 in
+    let@ e2 = expr env e2 in
     return @@ Syntax.Less (e1, e2)
   | Presyntax.If (e1, e2, e3) ->
-    let* e1 = expr env e1 in
-    let* e2 = expr env e2 in
-    let* e3 = expr env e3 in
+    let@ e1 = expr env e1 in
+    let@ e2 = expr env e2 in
+    let@ e3 = expr env e3 in
     return @@ Syntax.If (e1, e2, e3)
   | Presyntax.Fun (name, ht, e) ->
     let env = env |> 
       Environment.add_identifier name in
-    let* e = expr env e in
+    let@ e = expr env e in
     return @@ Syntax.Fun (name, ht, e)
   | Presyntax.Pair (e1, e2) ->
-    let* e1 = expr env e1 in
-    let* e2 = expr env e2 in
+    let@ e1 = expr env e1 in
+    let@ e2 = expr env e2 in
     return @@ Syntax.Pair (e1, e2)
   | Presyntax.Fst e ->
-    let* e = expr env e in
+    let@ e = expr env e in
     return @@ Syntax.Fst e
   | Presyntax.Snd e ->
-    let* e = expr env e in
+    let@ e = expr env e in
     return @@ Syntax.Snd e
   | Presyntax.Rec (x, ht, e) ->
-    let* e = expr env e in
+    let@ e = expr env e in
     return @@ Syntax.Rec (x, ht, e)
   | Presyntax.Cons (e1, e2) ->
-    let* e1 = expr env e1 in
-    let* e2 = expr env e2 in
+    let@ e1 = expr env e1 in
+    let@ e2 = expr env e2 in
     return @@ Syntax.Cons (e1, e2)
   | Presyntax.Match (e, ht, e1, x, y, e2) ->
-    let* e = expr env e in
-    let* e1 = expr env e1 in
+    let@ e = expr env e in
+    let@ e1 = expr env e1 in
     let env2 = env |> 
       Environment.add_identifier x |> 
       Environment.add_identifier y in
-    let* e2 = expr env2 e2 in
+    let@ e2 = expr env2 e2 in
     return @@ Syntax.Match (e, ht, e1, x, y, e2)
 
-and app_parser env : (Presyntax.expr, Syntax.expr) t =
+and app_parser env : (Presyntax.expr, Syntax.expr) t = 
   let open ListMonad in
   let rec parse_arguments args =
     match Seq.uncons args with
     | None -> return Seq.empty (* equivalent to fail *)
     | Some (arg0 ,args) ->
-      let* arg0 = expr env arg0 in
-      let* args = parse_arguments args in
+      let@ arg0 = expr env arg0 in
+      let@ args = parse_arguments args in
       return @@ Seq.cons arg0 args
   in
 
@@ -226,12 +226,15 @@ and app_parser env : (Presyntax.expr, Syntax.expr) t =
     match Seq.uncons presyntaxl with
     | None -> fail
     | Some (h, tail) ->
-      let* h = expr env h in
-      let* args = parse_arguments tail in
+      let@ h = expr env h in
+      let@ args = parse_arguments tail in
       return @@ Syntax.make_app h args
   in
-
-  (flat_map parse_application (iter1 get))
+  let* args = iter1 get in
+  Printf.printf "Parsing applications [1]: %s\n" @@ (String.concat ", ") @@ List.of_seq @@ Seq.map Presyntax.string_of_expr args;
+  let applications = parse_application args in
+  Printf.printf "Parsed applications [2]: %s\n" @@ (String.concat ", ") @@ List.of_seq @@ Seq.map Syntax.string_of_expr applications;
+  return_many applications
 
 and get_env_parser env : (Presyntax.expr, Syntax.expr) t =
   let rec graph_parser (g: Precedence.graph) inp =
@@ -306,7 +309,7 @@ and get_env_parser env : (Presyntax.expr, Syntax.expr) t =
         let sucs = graph_parser ps in
         (prec_lvl_parser sucs (snd p)) +++ sucs @@ inp
   in
-  (graph_parser env.operators) @@< eof
+  (graph_parser env.operators)
 
 let check_success lst =
   let rec fmt_ambigous ambg =
