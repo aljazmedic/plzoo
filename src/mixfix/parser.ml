@@ -69,23 +69,12 @@ let flat_map f p =
   let* x = p in
   return_many @@ f x
 
-(** Recursively. [recursively f] Creates a parser that can refer to itself. *)
-let recursively build =
-  let rec self x = build self x in
-  self
-
 (** Map. [map f p] Creates a parser that maps f over result of p *)
 let map f p = 
   let* x = p in
   return @@ f x
 
-(** Map_opt. [map_opt f p] Creates a parser that maps f over result of p, but only if f is not None *)
-let map_opt f p = 
-  let* x = p in
-  match f x with
-  | Some t -> return t
-  | None -> fail
-
+(** Parser that succeeds if the next token is [k] *)
 let kw k =
   let* v = get in
   if v = k then return v
@@ -295,7 +284,7 @@ and get_env_parser env : (Presyntax.expr, Syntax.expr) t =
                 arg0 tail_apps
 
           | { fx = Infix RightAssoc; _ } ->
-            (* sA_B(sA_B(sA_Bs)) -> Last token has to be of upper parsing level.  *)
+            (* sA_inpB(sA_B(sA_Bs)) -> Last token has to be of upper parsing level.  *)
             let* head_apps = iter1 (
               let* arg0_i = stronger_parser in
               let* args_i = between_parser in
