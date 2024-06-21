@@ -175,8 +175,9 @@ struct
         syntax_error ~loc:(location_of_lex lex) "parsing error"
       | Error _ as e ->
         raise e
-      | _ ->
-        syntax_error ~loc:(location_of_lex lex) "syntax error"
+      | _ as t ->
+        raise t
+        (* syntax_error ~loc:(location_of_lex lex) "syntax error" *)
   
   (** Load directives from the given file. *)
   let use_file ctx (filename, _interactive) =

@@ -12,9 +12,9 @@ module Mixfix = Zoo.Main(struct
 
   let initial_environment: environment = Environment.empty
 
-  let file_parser = Some (fun environ s -> Mixer.toplevel_cmds environ (Preparser.file Lexer.token s) )
+  let file_parser = Some (fun environ s -> Toplevel.transcribe_cmds environ (Preparser.file Lexer.token s) )
 
-  let toplevel_parser = Some (fun environ s -> Mixer.toplevel_cmd environ (Preparser.toplevel Lexer.token s) )
+  let toplevel_parser = Some (fun environ s -> Toplevel.transcribe_cmd environ (Preparser.toplevel Lexer.token s) )
 
   let exec (state:environment) = function
     | Syntax.Expr e ->
@@ -33,19 +33,19 @@ module Mixfix = Zoo.Main(struct
         {
           context = (x,ty)::state.context; 
           parser_context = state.parser_context |> 
-            Environment.add_identifier x;
+            Environment.pctx_add_identifier x;
           env = (x, ref (Interpret.VClosure (state.env,e)))::state.env
         }
       | Syntax.Mixfix (prec, operator)-> 
        (* Add operator x with precedence prec and expression e to environment.operators *)
-       {state with parser_context = Mixer.register_operator (prec, operator) state.parser_context }
+       state |> Environment.add_operator (prec, operator)
       | Syntax.Nop -> state
       | Syntax.Quit -> raise End_of_file
       | Syntax.GraphCmd gc ->
-          match gc with 
-          | Syntax.PrintGraph -> Zoo.print_info "%s\n" (Precedence.string_of_graph state.parser_context.operators);
-          state
-          | Syntax.ClearGraph -> {state with parser_context = Environment.empty.parser_context}
+        match gc with 
+        | Syntax.PrintGraph -> Zoo.print_info "%s\n" (Operator.string_of_graph state.parser_context.operators);
+        state
+        | Syntax.ClearGraph -> {state with parser_context = Environment.empty.parser_context}
 end) ;;
 
 Mixfix.main () ;;

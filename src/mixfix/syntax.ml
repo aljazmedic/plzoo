@@ -1,42 +1,5 @@
 (** Abstract syntax *)
 
-type associativity = LeftAssoc | RightAssoc | NonAssoc
-
-let string_of_assoc = function
-  | LeftAssoc -> "left"
-  | RightAssoc -> "right"
-  | NonAssoc -> "non"
-
-(** The type of fixities. *)
-
-type fixity = Prefix | Postfix | Infix of associativity | Closed
-
-let string_of_fixity = function
-  | Prefix -> "prefix"
-  | Postfix -> "postfix"
-  | Infix LeftAssoc -> "infixl"
-  | Infix RightAssoc -> "infixr"
-  | Infix NonAssoc -> "infix"
-  | Closed -> "closed"
-
-(** The type of operators. *)
-
-type operator = {
-  tokens: string list;
-  fx : fixity;
-}
-
-let name_of_operator {fx;tokens} =
-  let tokens = String.concat "_" tokens in
-  match fx with
-  | Closed -> tokens
-  | Prefix -> tokens ^ "_"
-  | Postfix -> "_" ^ tokens
-  | Infix _ -> "_" ^ tokens ^ "_"
-
-let string_of_op ({fx;tokens} as op) = 
-  (name_of_operator op) ^ " (fx:" ^ (string_of_fixity fx) ^ ")"
-
 (** The type of variable names. *)
 type name = string
 
@@ -64,7 +27,7 @@ type expr =
   | Match of expr * Presyntax.htype * expr * name * name * expr
       (** list decomposition [match e with [t] -> e1 | x::y -> e2] *)
 
-type graph_cmd =
+type graph_cmd =  
   | PrintGraph 
   | ClearGraph
 
@@ -72,7 +35,7 @@ type graph_cmd =
 type toplevel_cmd =
   | Expr of expr       (** an expression to be evaluated *)
   | Def of name * expr (** toplevel definition [let x = e] *)
-  | Mixfix of int * operator
+  | Mixfix of int * Operator.t
   | Quit
   | GraphCmd of graph_cmd
   | Nop

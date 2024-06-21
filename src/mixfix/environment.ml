@@ -2,7 +2,7 @@
 module IdentifierSet = Set.Make(struct type t = Syntax.name let compare = Stdlib.compare end)
 
 type parser_context = {
-  operators: Precedence.graph;
+  operators: Operator.graph;
   known_identifiers: IdentifierSet.t;
 }
 
@@ -15,7 +15,7 @@ type t = {
 
 let empty = {
   parser_context = {
-    operators = Precedence.empty_graph;
+    operators = Operator.empty_graph;
     known_identifiers = IdentifierSet.empty;
   };
   context = [];
@@ -25,11 +25,14 @@ let empty = {
 
 let debug = true
 
+let pctx_add_identifier identifier (pctx:parser_context) =
+  {pctx with known_identifiers = IdentifierSet.add identifier pctx.known_identifiers}
 
-let add_identifier identifier (ctx:parser_context)  =
-  let new_identifiers = IdentifierSet.add identifier ctx.known_identifiers in
-  {ctx with known_identifiers = new_identifiers}
-
+let add_operator (prec, operator) (ctx:t) =
+  {ctx with parser_context = {
+    ctx.parser_context with operators = (Operator.add_operator (prec, operator) ctx.parser_context.operators)
+  }}
+  
 let identifier_present (ctx:parser_context) token =
   IdentifierSet.mem token ctx.known_identifiers
 
