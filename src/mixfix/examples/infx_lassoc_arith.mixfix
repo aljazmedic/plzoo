@@ -1,4 +1,7 @@
 
+mixfixl 30 _*_
+let _*_ = fun n m : int => $mul n m
+
 mixfixl 20 _+_
 let _+_ = fun n m : int => $add n m
 
@@ -10,4 +13,16 @@ let h = 5
 
 t + t
 h - t
+h * t
 t + t - h
+
+mixfix 99 |_|
+let |_| = fun (a:int) => $cond ($lt a 0) ($sub 0 a) a
+
+mixfix 1 sqrt_
+let sqrt_ = fun (a:int) => 42
+
+
+let t = | 6 - 8 * 3 + 2 |
+t
+sqrt t

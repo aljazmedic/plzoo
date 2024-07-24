@@ -61,8 +61,7 @@ let return_many xs inp = Seq.map (fun x -> (x, inp)) xs
 (** Parser that succeeds if the next token is [k'] *)
 let kw k' =
   let* x = get in
-  if x = k' then return x
-  else fail
+  if x = k' then return x else fail
 
 (** Concatenation of parsers, returning a pair *)
 let ( @@@ ) p1 p2 =
@@ -108,17 +107,15 @@ let rec between p = function
 (* Auxiliary functions *)
 let cons_back xs x = Seq.append xs (Seq.return x)
 
-
-let apply_op op args = 
-  Seq.fold_left 
-    (fun app arg -> Syntax.Apply (app, arg)) 
-    (Syntax.Var (Operator.name_of_operator op)) args
+let op_application op args =
+  let op_name = Syntax.Var (Operator.name_of_operator op) in
+  Seq.fold_left (fun app arg -> Syntax.Apply (app, arg)) op_name args
 
 let rec seq_fold_right f acc sequence =
   match Seq.uncons sequence with
   | None -> acc
-  | Some (x, xs) -> f (seq_fold_right f acc xs) x 
-  
+  | Some (x, xs) -> f (seq_fold_right f acc xs) x
+
 (* Core of parsing *)
 
 let rec expr (env : Environment.parser_context) e =
@@ -129,10 +126,8 @@ let rec expr (env : Environment.parser_context) e =
       else Seq.empty
   | Presyntax.Seq es ->
       let seq_parser = get_graph_parser env in
-      let@ (e, leftover) = seq_parser es in
-      if Seq.is_empty @@ leftover then
-        return e
-      else fail
+      let@ e, leftover = seq_parser es in
+      if Seq.is_empty @@ leftover then return e else fail
   | Presyntax.Int k -> return @@ Syntax.Int k
   | Presyntax.Bool b -> return @@ Syntax.Bool b
   | Presyntax.Nil ht -> return @@ Syntax.Nil ht
@@ -203,109 +198,90 @@ let rec expr (env : Environment.parser_context) e =
 
 and get_graph_parser env : (Presyntax.expr, Syntax.expr) t =
   let g = env.operators in
-  let app_parser =
-    (let open ListMonad in
-    let rec parse_arguments args =
-      match Seq.uncons args with
-      | None -> return Seq.empty (* equivalent to fail *)
-      | Some (arg0 ,args) ->
-        let@ arg0 = expr env arg0 in
-        let@ args = parse_arguments args in
-        return @@ Seq.cons arg0 args
+  let app_parser env =
+    let rec parse_app app tail =
+      let open ListMonad in
+      match Seq.uncons tail with
+      | None -> return app
+      | Some (arg0, tail) ->
+          let@ arg0 = expr env arg0 in
+          parse_app (Syntax.Apply (app, arg0)) tail
     in
-    let parse_application (presyntaxl : Presyntax.expr Seq.t) =
-      match Seq.uncons presyntaxl with
-      | None -> fail
-      | Some (h, tail) ->
-        let@ h = expr env h in
-        let@ args = parse_arguments tail in
-        return @@ Syntax.make_app h args
-    in
+
     let* args = iter1 get in
-    let applications = parse_application args in
-    (
-      (* print_endline @@ "Parsed: " ^ (String.concat "," (List.of_seq @@ (Seq.map Syntax.string_of_expr applications)) ); *)
-    return_many applications))
+    match Seq.uncons args with
+    | None -> fail
+    | Some (head, tail) ->
+        return_many
+          (let open ListMonad in
+           let@ head = expr env head in
+           parse_app head tail)
   in
 
-  let rec precs (ps: Operator.precedence list) inp =
+  let rec precedences (ps : Operator.precedence list) inp =
     match ps with
-    | [] -> app_parser inp
-    | p::ps -> let sucs = precs ps in 
-      (precedence_level p sucs ||| sucs) inp
-  
-  and inner ops inp = 
-    match ops with
-    | [] -> Seq.empty
-    | (op::ops) -> 
-      ((let* parts = between (precs g) (Operator.name_parts op)
-      in return (op, parts))
-       ||| inner ops) inp
+    | [] -> app_parser env inp
+    | (_, p) :: ps ->
+        let p_up = precedences ps in
+        (precedence p p_up ||| p_up) inp
 
-  and precedence_level (_, cur_prec) p_up =
+  and inner = function
+    | [] -> fail
+    | op :: ops ->
+        (let* parts = between (precedences g) (Operator.name_parts op) in
+         return (op, parts))
+        ||| inner ops
+        
+  and precedence cur_prec p_up =
     let open Operator in
-
-    let parse_fixity fx =  (* [_] *)
-      let* (op, args) = inner @@ op_of_fix fx cur_prec in
-      return (apply_op op, args)
+    let inner_fx fx =
+      let* op, args = inner @@ op_of_fix fx cur_prec in
+      return (op_application op, args)
     in
 
-    let preRight = 
-      begin
-        (let* (op, args) = parse_fixity @@ Prefix in
-        return @@ (fun last -> op @@ cons_back args last)) || 
+    (* Closed *)
+    (let* (app, args) = inner_fx Closed in
+     return @@ app args)
 
-        let* arg0 = p_up in
-        let* (op, args) = parse_fixity @@ Infix RightAssoc in
-        return @@ (fun last -> op @@ cons_back (Seq.cons arg0 args) last)
-
-      end
-    in
-
-    let postLeft =
-      begin
-          (let* (op, args) = parse_fixity @@ Postfix in
-          return @@ (fun first -> op @@ Seq.cons first args)) ||
-
-          let* (op, args) = parse_fixity @@ Infix LeftAssoc in
+    (* Infix NonAssoc *)
+    || (let* arg0 = p_up in
+        let* (app, args) = inner_fx (Infix NonAssoc) in
+        let* argZ = p_up in
+        let args = cons_back (Seq.cons arg0 args) argZ in
+        return @@ app args)
+        
+    (* Postfix/LeftAssoc*)
+    || let postLeft =
+          (let* (app, args) = inner_fx @@ Postfix in
+          return @@ fun first -> app @@ Seq.cons first args)
+          ||
+          (let* (app, args) = inner_fx @@ Infix LeftAssoc in
           let* argZ = p_up in
-          return @@ (fun first -> op @@ Seq.cons first @@ cons_back args argZ)
+          let args = cons_back args argZ in
+          return @@ fun first -> app @@ Seq.cons first args)
+        in 
+        (let* arg0 = p_up in
+        let* apps = iter1 postLeft in
+        return @@ Seq.fold_left (fun arg app -> app arg) arg0 apps)
 
-      end
-    in 
-  begin
+    (* Prefix/RightAssoc*)
+    || let preRight =
+          (let* (app, args) = inner_fx @@ Prefix in
+          return @@ fun last -> app @@ cons_back args last)
+          ||
+          let* arg0 = p_up in
+          let* (app, args) = inner_fx @@ Infix RightAssoc in
+          return @@ fun last -> app @@ cons_back (Seq.cons arg0 args) last
+        in
+        (let* apps = iter1 preRight in
+        let* argZ = p_up in
+        return @@ seq_fold_right (fun app arg -> arg app) argZ apps)
 
-    (*  Precedence level parser taxonomy by fixity *)
-    begin
-      let* (op, args) = parse_fixity Closed in
-      return @@ op args
-    end ||
-
-    begin
-      let* arg0 = p_up in
-      let* (op, args) = parse_fixity (Infix NonAssoc) in
-      let* argZ = p_up in
-      let args = cons_back (Seq.cons arg0 args) argZ in
-      return @@ op args
-    end ||
-
-    begin
-      let* app0 = p_up in
-      let* args = iter1 postLeft in
-      return @@ Seq.fold_left (fun arg app -> app arg) app0 args
-    end ||
-
-    begin
-      let* apps = iter1 preRight in
-      let* appZ = p_up in
-      return @@ seq_fold_right (fun app arg -> arg app) appZ apps
-    end ||
-
-      fail
-  end
-
+    (* Fail *)
+    || fail
   in
-    precs g
+
+  precedences g
 
 let check_success lst =
   let rec fmt_ambigous ambg =
