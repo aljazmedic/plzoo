@@ -3,6 +3,6 @@ mixfix 1 _doubled ;;
 
 let _doubled = fun n : int => $mul n 2 ;;
 
-$add 2 (3 doubled) doubled doubled doubled ;;
+($add 2 (3 doubled)) doubled doubled doubled ;;
 
 -- should be 64

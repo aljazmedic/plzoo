@@ -10,7 +10,7 @@ let transcribe_cmd (env:Environment.t) (cmd: Presyntax.toplevel_cmd): Syntax.top
     Syntax.Expr e
 
   | Presyntax.Def (name, e) ->
-    print_endline @@ "Parsing " ^ Presyntax.string_of_expr e ;
+    (* print_endline @@ "Parsing " ^ Presyntax.string_of_expr e ; *)
     let e = Parser.(check_success @@ expr env.parser_context e) in
     Syntax.Def (name, e)
 

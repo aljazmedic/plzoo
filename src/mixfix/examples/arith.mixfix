@@ -1,0 +1,13 @@
+
+mixfixl 20 _+_
+let _+_ = fun n m : int => $add n m
+
+mixfixl 20 _-_
+let _-_ = fun n m : int => $sub n m
+
+let t = 3 
+let h = 5
+
+t + t
+h - t
+t + t - h

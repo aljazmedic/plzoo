@@ -14,7 +14,7 @@ module ParserMonad : sig
   val fail : ('token, 'a) t
   val eof : ('token, unit) t
   val get : ('token, 'token) t
-  val ( ++ ) : ('token, 'a) t -> ('token, 'a) t -> ('token, 'a) t
+  val ( || ) : ('token, 'a) t -> ('token, 'a) t -> ('token, 'a) t
   val ( let* ) : ('token, 'a) t -> ('a -> ('token, 'b) t) -> ('token, 'b) t
   val ( >>= ) : ('token, 'a) t -> ('a -> ('token, 'b) t) -> ('token, 'b) t
 end = struct
@@ -43,7 +43,7 @@ end = struct
     | Some _ -> Seq.empty
 
   (** Or. Option to choose from either parse result of [p1] pr [p2] *)
-  let ( ++ ) c1 c2 inp = Seq.append (c1 inp) (c2 inp)
+  let ( || ) c1 c2 inp = Seq.append (c1 inp) (c2 inp)
 end
 
 open ParserMonad
@@ -54,7 +54,7 @@ let first p inp =
   | Some (x, _) -> Seq.return x
 
 (** Fallback or. Option to choose from either parse result of [p1] pr [p2] *)
-let ( +++ ) p1 p2 = first (p1 ++ p2)
+let ( ||| ) p1 p2 = first (p1 || p2)
 
 let return_many xs inp = Seq.map (fun x -> (x, inp)) xs
 
@@ -62,7 +62,7 @@ let return_many xs inp = Seq.map (fun x -> (x, inp)) xs
 let kw k' =
   let* x = get in
   print_endline @@ "Waiting for token " ^ (Presyntax.string_of_expr k') ;
-  if x = k' then return x 
+  if x = k' then (print_endline "Found!" ; return x )
   else fail
 
 (** Concatenation of parsers, returning a pair *)
@@ -88,8 +88,7 @@ let rec iter p =
   (let* x = p in
    let* xs = iter p in
    return @@ Seq.cons x xs)
-  ++ (return @@ Seq.empty)
-(* Must not replace with +++ *)
+  || (return @@ Seq.empty)
 
 (** Kleene plus *)
 let iter1 p =
@@ -99,7 +98,7 @@ let iter1 p =
 
 let rec between p = function
   | [] -> assert false
-  | [ k ] -> kw k <@@@ return @@ Seq.empty
+  | [ k ] -> kw k <@@@ return Seq.empty
   | k :: ks ->
       kw k
       <@@@
@@ -120,8 +119,10 @@ let rec expr (env : Environment.parser_context) e =
       else Seq.empty
   | Presyntax.Seq es ->
       let seq_parser = get_graph_parser env in
-      let@ tt = seq_parser es in
-      return @@ fst tt
+      let@ (e, leftover) = seq_parser es in
+      if Seq.is_empty @@ leftover then
+        return e
+      else fail
   | Presyntax.Int k -> return @@ Syntax.Int k
   | Presyntax.Bool b -> return @@ Syntax.Bool b
   | Presyntax.Nil ht -> return @@ Syntax.Nil ht
@@ -192,28 +193,36 @@ let rec expr (env : Environment.parser_context) e =
 
 and get_graph_parser env : (Presyntax.expr, Syntax.expr) t =
   let app_parser =
-    let rec parse_app app tail =
-      let open ListMonad in
-      match Seq.uncons tail with
-      | None -> return app
-      | Some (arg0, tail) ->
-          let@ arg0 = expr env arg0 in
-          parse_app (Syntax.Apply (app, arg0)) tail
-    in
-    let* args = iter1 get in
+    let open ListMonad in
+  let rec parse_arguments args =
     match Seq.uncons args with
+    | None -> return Seq.empty (* equivalent to fail *)
+    | Some (arg0 ,args) ->
+      let@ arg0 = expr env arg0 in
+      let@ args = parse_arguments args in
+      return @@ Seq.cons arg0 args
+  in
+  let parse_application (presyntaxl : Presyntax.expr Seq.t) =
+    match Seq.uncons presyntaxl with
     | None -> fail
-    | Some (head, tail) ->
-        return_many
-          (let open ListMonad in
-           let@ head = expr env head in
-           parse_app head tail)
+    | Some (h, tail) ->
+      let@ h = expr env h in
+      let@ args = parse_arguments tail in
+      return @@ Syntax.make_app h args
+  in
+  let* args = iter1 get in
+  let applications = parse_application args in
+  (
+    (* print_endline @@ "Parsed: " ^ (String.concat "," (List.of_seq @@ (Seq.map Syntax.string_of_expr applications)) ); *)
+  return_many applications)
   in
   let rec get_subgraph_parser (g : Operator.graph) inp =
-    let rec prec_lvl_parser stronger operators inp =
-      let operator_parser stronger op =
-        let self = prec_lvl_parser stronger operators in
-        let op_name = Syntax.Var (Operator.name_of_operator op) in
+    let rec prec_lvl_parser prec_up operators inp =
+      
+      let operator_parser op =
+        let prec_same = prec_lvl_parser prec_up operators in
+        let op_name = Syntax.Var (Operator.name_of_operator op) in (* e.g. A_B_ *)
+        let op_tokens = (List.map (fun x -> Presyntax.Var x) op.tokens) in (* e.g. [A; B] *)
 
         let app_args =
           Seq.fold_left (fun app arg -> Syntax.Apply (app, arg)) op_name
@@ -231,63 +240,69 @@ and get_graph_parser env : (Presyntax.expr, Syntax.expr) t =
         in
 
         let between_parser =
-          between self (List.map (fun x -> Presyntax.Var x) op.tokens)
+          between (get_subgraph_parser g) op_tokens
         in
         match op with
         | { fx = Closed; _ } ->
+            (* A_B *)
             let* args = between_parser in
             return @@ app_args args
+
         | { fx = Postfix; _ } ->
             (* (sA_B)A_B *)
-            let* head = stronger in
+            let* head = prec_up in
             let* tails = iter1 between_parser in
             return @@ app_fold_left head tails
+        
         | { fx = Prefix; _ } ->
             (* A_B(A_Bs) *)
             let* head_apps = iter1 between_parser in
-            let* appZ = stronger in
+            let* appZ = prec_up in
             return @@ app_fold_right head_apps appZ
+
         | { fx = Infix NonAssoc; _ } ->
             (* sA_B_ -> First token has to be of upper parsing level.  *)
-            let* arg0 = stronger in
+            let* arg0 = prec_up in
             let* mid_args = between_parser in
-            let* argZ = stronger in
+            let* argZ = prec_up in
             let args = cons_back (Seq.cons arg0 mid_args) argZ in
             return @@ app_args args
+
         | { fx = Infix LeftAssoc; _ } ->
             (* ((sA_Bs)A_Bs)A_Bs -> First token has to be of upper parsing level.  *)
-            let* arg0 = stronger in
+            let* arg0 = prec_up in
             let* tail_apps =
               iter1
                 (let* args_i = between_parser in
-                 let* argZ_i = stronger in
+                 let* argZ_i = prec_up in
                  return @@ cons_back args_i argZ_i)
             in
             return @@ app_fold_left arg0 tail_apps
+
         | { fx = Infix RightAssoc; _ } ->
-            (* sA_inpB(sA_B(sA_Bs)) -> Last token has to be of upper parsing level.  *)
+            (* sA_B(sA_B(sA_Bs)) -> Last token has to be of upper parsing level.  *)
             let* head_apps =
               iter1
-                (let* arg0_i = stronger in
+                (let* arg0_i = prec_up in
                  let* args_i = between_parser in
                  return @@ Seq.cons arg0_i args_i)
             in
-            let* argZ = stronger in
+            let* argZ = prec_up in
             return @@ app_fold_right head_apps argZ
       in
 
       match operators with
       | [] -> Seq.empty
       | o :: os ->
-          (operator_parser stronger o +++ prec_lvl_parser stronger os) @@ inp
+          (operator_parser o || prec_lvl_parser prec_up os) @@ inp
     in
     match g with
     | [] -> app_parser inp
     | p :: ps ->
         let sucs = get_subgraph_parser ps in
-        (prec_lvl_parser sucs (snd p) +++ sucs) @@ inp
+        (prec_lvl_parser sucs (snd p) || sucs) @@ inp
   in
-  get_subgraph_parser env.operators @@@< eof
+  get_subgraph_parser env.operators
 
 let check_success lst =
   let rec fmt_ambigous ambg =
@@ -303,5 +318,5 @@ let check_success lst =
       match Seq.uncons tail with
       | None -> a
       | _ ->
-          Zoo.error ?kind:(Some "Syntax error") "Ambiguous parse:\n + %s"
-            (fmt_ambigous tail))
+          Zoo.error ?kind:(Some "Syntax error") "Ambiguous parse:\n%s"
+            (fmt_ambigous lst))

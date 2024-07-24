@@ -1,0 +1,13 @@
+
+mixfix 10 A_B
+let A_B = fun x : int => $add x 1
+
+mixfix 10 C_D
+let C_D = fun x : int => $add x 2
+
+A 3 B
+-- should be 4
+C 5 D
+-- should be 7
+A C 6 D B
+-- should be 9

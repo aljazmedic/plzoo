@@ -1,0 +1,12 @@
+
+mixfix 10 ++_
+let ++_ = fun x : int => $add x 1
+
+mixfix 10 @@_
+let @@_ = fun x : int => $sub x 1
+
+
+++ 3
+@@ 4
+
+@@ ++ 3
