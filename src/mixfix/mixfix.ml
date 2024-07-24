@@ -41,11 +41,11 @@ module Mixfix = Zoo.Main(struct
        state |> Environment.add_operator (prec, operator)
       | Syntax.Nop -> state
       | Syntax.Quit -> raise End_of_file
-      | Syntax.GraphCmd gc ->
+      | Syntax.OperatorsCmd gc ->
         match gc with 
-        | Syntax.PrintGraph -> Zoo.print_info "%s\n" (Operator.string_of_graph state.parser_context.operators);
+        | Syntax.PrintOperators -> Zoo.print_info "%s\n" (Operator.string_of_graph state.parser_context.operators);
         state
-        | Syntax.ClearGraph -> {state with parser_context = Environment.empty.parser_context}
+        | Syntax.ClearOperators -> {state with parser_context = Environment.empty.parser_context}
 end) ;;
 
 Mixfix.main () ;;

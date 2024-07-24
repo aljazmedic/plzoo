@@ -3,7 +3,7 @@
   open Lexing
 }
 
-let var = ['_' 'a'-'z' 'A'-'Z' '0'-'9' '+' '-' '*' '/' '|' ',' '!' '@' '&' '%' '#' '>' '<']+
+let var = ['_' 'a'-'z' 'A'-'Z' '0'-'9' '+' '-' '*' '/' ',' '!' '@' '&' '%' '#' '>' '<']+
 
 rule token = parse
     "--" [^'\n']* '\n'  { Lexing.new_line lexbuf; token lexbuf }
@@ -27,7 +27,7 @@ rule token = parse
   | "$snd"              { SND }
   | "true"              { TRUE }
   | ":q""uit"?          { CMD_QUIT }
-  | ":graph"            { CMD_GRAPH }
+  | ":op""erators"?     { CMD_OPERATORS }
   | "with"              { WITH }
   | "->"                { TARROW }
   | "=>"                { DARROW }

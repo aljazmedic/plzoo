@@ -34,7 +34,7 @@
 %token CONS
 %token MATCH WITH ALTERNATIVE
 %token REC IS
-%token CMD_QUIT CMD_GRAPH
+%token CMD_QUIT CMD_OPERATORS
 %token EOF
 %start toplevel file
 %type <Presyntax.toplevel_cmd list> file
@@ -67,8 +67,8 @@ toplevel:
 cmd:
   | CMD_QUIT
     { Quit }
-  | CMD_GRAPH VAR
-    { GraphCmd $2 }
+  | CMD_OPERATORS VAR
+    { OperatorsCmd $2 }
 
 def:
   | LET VAR SET_EQUAL expr

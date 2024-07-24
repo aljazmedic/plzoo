@@ -21,11 +21,11 @@ let transcribe_cmd (env:Environment.t) (cmd: Presyntax.toplevel_cmd): Syntax.top
      Syntax.Quit
   | Presyntax.Nop ->
      Syntax.Nop
-  | Presyntax.GraphCmd g ->
-    Syntax.GraphCmd (match g with
-      | "print" -> Syntax.PrintGraph
-      | "clear" -> Syntax.ClearGraph
-      | _ -> Zoo.error ?kind:(Some "Command error") "Unknown :graph command: '%s'" g)
+  | Presyntax.OperatorsCmd g ->
+    Syntax.OperatorsCmd (match g with
+      | "show" -> Syntax.PrintOperators
+      | "clear" -> Syntax.ClearOperators
+      | _ -> Zoo.error ?kind:(Some "Command error") "Unknown :op command: '%s'" g)
 
 let transcribe_cmds (env:Environment.t) = 
   (* List.map (fun cmd -> toplevel_cmd env cmd) cmdlist *)

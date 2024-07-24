@@ -27,9 +27,9 @@ type expr =
   | Match of expr * Presyntax.htype * expr * name * name * expr
       (** list decomposition [match e with [t] -> e1 | x::y -> e2] *)
 
-type graph_cmd =  
-  | PrintGraph 
-  | ClearGraph
+type operators_cmd =  
+  | PrintOperators 
+  | ClearOperators
 
 (** Toplevel commands *)
 type toplevel_cmd =
@@ -37,7 +37,7 @@ type toplevel_cmd =
   | Def of name * expr (** toplevel definition [let x = e] *)
   | Mixfix of int * Operator.t
   | Quit
-  | GraphCmd of graph_cmd
+  | OperatorsCmd of operators_cmd
   | Nop
 
 let rec make_app head args = 
