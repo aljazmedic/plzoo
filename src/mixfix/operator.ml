@@ -14,9 +14,9 @@ type fixity = Prefix | Postfix | Infix of associativity | Closed
 let string_of_fixity = function
   | Prefix -> "prefix"
   | Postfix -> "postfix"
-  | Infix LeftAssoc -> "infixl"
-  | Infix RightAssoc -> "infixr"
-  | Infix NonAssoc -> "infix"
+  | Infix LeftAssoc -> "infix left"
+  | Infix RightAssoc -> "infix right"
+  | Infix NonAssoc -> "infix non"
   | Closed -> "closed"
 
 (** The type of operators. *)
@@ -38,16 +38,28 @@ let name_of_operator {fx;tokens} =
 let string_of_op ({fx;tokens} as op) = 
   (name_of_operator op) ^ " (fx:" ^ (string_of_fixity fx) ^ ")"
 
+let name_parts op =
+  List.map (fun x -> Presyntax.Var x) op.tokens
+
   
 (* Operator precedence relationship *)
 
 (** Precedence level of a group of operators. In [(a,b)] higher [a] means higher precedence *)
-type precedence = int * t list
+type precedence = int * (fixity * t list) list
 
 let string_of_precedence (p, lst) =
-  Printf.sprintf "Prec. %d:\n + %s" p (
-    String.concat "\n + " (List.map string_of_op lst)
-    )
+  Printf.sprintf "Prec. %d:\n%s" p 
+  @@ String.concat "\n" 
+  @@ List.map (fun (fx, lst) -> 
+      Printf.sprintf " - fx:%s:\n%s" (string_of_fixity fx) (
+        String.concat "\n + " (List.map string_of_op lst)
+        )
+    ) lst
+    
+let op_of_fix fx a =
+  match List.assoc_opt fx a with
+    | None -> []
+    | Some lst -> lst
 
 (** Totally orderered [precedence] list *)
 type graph = precedence list
@@ -74,8 +86,11 @@ let find_duplicate_token tokens0 =
     let token_in_operator (operator:t) = 
       let& token = token_in_namelist operator.tokens in
       Some (token, operator) in
-    let token_in_precedence (prec, operators) =
-      let& (op, token) =  List.find_map token_in_operator operators in
+    let token_in_prec_fixity (fx, operators) =
+      let& (token, op) = List.find_map token_in_operator operators in
+      Some (op, token) in
+    let token_in_precedence (prec, prec_fixities) =
+      let& (op, token) =  List.find_map token_in_prec_fixity prec_fixities in
       Some (prec, op, token) in
     List.find_map token_in_precedence
 
@@ -84,21 +99,26 @@ let find_duplicate_token tokens0 =
 let add_operator (prec, operator) (state: graph): graph = 
   (* Check for duplicate tokens *)
   match state |> find_duplicate_token operator.tokens  with
-    | Some (prec, token, op2) -> 
+    | Some (prec, op2, token) -> 
         Zoo.error ?kind:(Some "Operator error") "Duplicate token '%s' in operator %s. @." token (string_of_op op2)
     | None ->
   (* End duplicate check *)
-  let rec add_operator (prec, operator) (state:graph) = 
+  let append_to_fixity operator prec_level =
+    match List.assoc_opt operator.fx prec_level with
+    | None -> (operator.fx, [operator]) :: prec_level
+    | Some lst -> (operator.fx, operator::lst) :: List.remove_assoc operator.fx prec_level
+  in
+  let rec add_operator (prec, operator) (state: graph) = 
   match state with
-  | [] -> [(prec, [operator])]
+  | [] -> [prec, [operator.fx, [operator]] ]
   | (prec', lst) :: tail -> 
     if prec = prec' then
-      (prec', operator::lst) :: tail
+      (prec', lst |> append_to_fixity operator) :: tail
     else
       if prec' < prec then
         (prec', lst) :: add_operator (prec, operator) tail
       else
-        (prec, [operator]) :: state
+        (prec, [operator.fx, [operator]]) :: state
   in
     add_operator (prec, operator) state
 
