@@ -4,5 +4,12 @@
 -- mixfix 2 if_then_else_ ;;
 -- let if_then_else_ = fun (b:bool) (a c:int) => $cond b a c ;;
 
-mixfixr 2 _if_else_ ;;
-let _if_else_ = fun (a:int) (p:bool) (b:int) => $cond p a b ;;
+mixfix 3 if_then_else_
+let if_then_else_ = fun (b:bool) (a c:int) => $cond b a c
+
+mixfixr 3 _if_else_
+let _if_else_ = fun (a:int) (b:bool) (c:int) => if b then a else c
+
+if false then 9 else 2
+
+(fun if:int => (if if false else (if false then 9 else 2))) 3

@@ -125,9 +125,9 @@ let rec expr (env : Environment.parser_context) e =
       if Environment.identifier_present env x then return @@ Syntax.Var x
       else Seq.empty
   | Presyntax.Seq es ->
-      let seq_parser = get_graph_parser env in
-      let@ e, leftover = seq_parser es in
-      if Seq.is_empty @@ leftover then return e else fail
+      let p_expr_seq = get_graph_parser env @@@< eof in
+      let@ result, _ = p_expr_seq es in
+      return result
   | Presyntax.Int k -> return @@ Syntax.Int k
   | Presyntax.Bool b -> return @@ Syntax.Bool b
   | Presyntax.Nil ht -> return @@ Syntax.Nil ht
@@ -197,7 +197,6 @@ let rec expr (env : Environment.parser_context) e =
       return @@ Syntax.Match (e, ht, e1, x, y, e2)
 
 and get_graph_parser env : (Presyntax.expr, Syntax.expr) t =
-  let g = env.operators in
   let app_parser env =
     let rec parse_app app tail =
       let open ListMonad in
@@ -217,7 +216,7 @@ and get_graph_parser env : (Presyntax.expr, Syntax.expr) t =
            let@ head = expr env head in
            parse_app head tail)
   in
-
+  let g = env.operators in
   let rec precedences (ps : Operator.precedence list) inp =
     match ps with
     | [] -> app_parser env inp

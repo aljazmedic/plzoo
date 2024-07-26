@@ -38,6 +38,7 @@ rule token = parse
   | ":q""uit"?          { CMD_QUIT }
   | ":op""erators"?     { CMD_OPERATORS }
   | "with"              { WITH }
+  | var                 { VAR (lexeme lexbuf) }
   | "->"                { TARROW }
   | "=>"                { DARROW }
   | ";;"                { SEMICOLON2 }
@@ -49,7 +50,6 @@ rule token = parse
   | '['                 { LBRACK }
   | ']'                 { RBRACK }
   | '|'                 { ALTERNATIVE }
-  | var                 { VAR (lexeme lexbuf) }
   | eof                 { EOF }
 
 {
