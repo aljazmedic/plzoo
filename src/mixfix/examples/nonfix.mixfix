@@ -1,22 +1,22 @@
 
-mixfix 10 A_B
-let A_B = fun x : int => $add x 1
+mixfix 10 A_B;;
+let A_B = fun x : int => $add x 1;;
 
-mixfix 10 C_D
-let C_D = fun x : int => $sub x 2
+mixfix 10 C_D;;
+let C_D = fun x : int => $sub x 2;;
 
-mixfix 20 E_F
-let E_F = fun x : int => $add x 2
+mixfix 20 E_F;;
+let E_F = fun x : int => $add x 2;;
 
-A 0 B
+A 0 B;;
 -- should be 1
-C 4 D
+C 4 D;;
 -- should be 2
-A C 4 D B
+A C 4 D B;;
 -- should be 3
-E 2 F
+E 2 F;;
 -- should be 4
-E A 2 B F
+E A 2 B F;;
 -- should be 5
-A E 3 F B
+A E 3 F B;;
 -- should be 6

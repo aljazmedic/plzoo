@@ -1,11 +1,12 @@
 
-mixfix 10 _A_
-let _A_ = fun x y : int => ($add x y)
+mixfix 10 _A_ ;;
+let _A_ = fun x y : int => ($add x y) ;;
 
-:operators show
-
-1 A 2
+1 A 2 ;;
 -- should be 3
 
-1 A 2 A 3 
 -- should fail
+1 A 2 A 3  ;;
+
+-- this however should work
+1 A (2 A 3)  ;;

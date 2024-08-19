@@ -1,28 +1,32 @@
+-- Define infix operators for arithmetic expressions with left associativity
+mixfixl 30 _*_ ;;
+let _*_ = fun n m : int => $mul n m ;;
 
-mixfixl 30 _*_
-let _*_ = fun n m : int => $mul n m
+mixfixl 20 _+_ ;;
+let _+_ = fun n m : int => $add n m ;;
 
-mixfixl 20 _+_
-let _+_ = fun n m : int => $add n m
-
-mixfixl 20 _-_
-let _-_ = fun n m : int => $sub n m
-
-let t = 3 
-let h = 5
-
-t + t
-h - t
-h * t
-t + t - h
-
-mixfix 99 |_|
-let |_| = fun (a:int) => $cond ($lt a 0) ($sub 0 a) a
-
-mixfix 1 sqrt_
-let sqrt_ = fun (a:int) => 42
+mixfixl 20 _-_ ;;
+let _-_ = fun n m : int => $sub n m ;;
 
 
-let t = | 6 - 8 * 3 + 2 |
-t
-sqrt t
+-- Check basic arithmetic expressions
+let t = 3 ;;
+let h = 5 ;;
+
+t + t ;;
+h - t ;;
+h * t ;;
+t + t - h ;;
+t + t * h ;;
+
+-- Absolute value
+mixfix 99 |_| ;;
+let |_| = fun (a:int) => $cond ($lt a 0) ($sub 0 a) a ;;
+
+-- Square root, that actually isn't
+mixfix 1 sqrt_ ;;
+let sqrt_ = fun (a:int) => 42 ;;
+
+
+| 6 - 8 * 3 + 2 | ;;
+sqrt | 6 - 8 * 3 + 2 | ;;

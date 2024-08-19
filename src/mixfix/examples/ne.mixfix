@@ -1,9 +1,8 @@
 
 
--- "ne ne ne" primer
--- Tega Agda ne prezivi :)
+-- "ne ne ne" example
 
-let ne = false;;
+let ne = false ;;
 
 let not = fun (b:bool) => $cond b false true ;;
 
