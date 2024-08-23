@@ -3,7 +3,10 @@
   open Lexing
 }
 
-let var = ['_' 'a'-'z' 'A'-'Z' '0'-'9' '+' '-' '*' '/' '|' ',' '!' '@' '&' '%' '#' '>' '<']+
+let core = ['_' 'a'-'z' 'A'-'Z' '+' '-' '*' '/' '@' '&' '%' '#' '>' '<' ',' '!' '~' '?' '^' '.' '\'']
+let non_fst = ['[' ']' '|' '=' '0'-'9']
+let allowed = core | non_fst
+let var = core (allowed | ':')* allowed*
 
 rule token = parse
     "--" [^'\n']* '\n'  { Lexing.new_line lexbuf; token lexbuf }
@@ -38,7 +41,6 @@ rule token = parse
   | ":q""uit"?          { CMD_QUIT }
   | ":op""erators"?     { CMD_OPERATORS }
   | "with"              { WITH }
-  | var                 { VAR (lexeme lexbuf) }
   | "->"                { TARROW }
   | "=>"                { DARROW }
   | ";;"                { SEMICOLON2 }
@@ -50,6 +52,7 @@ rule token = parse
   | '['                 { LBRACK }
   | ']'                 { RBRACK }
   | '|'                 { ALTERNATIVE }
+  | var                 { VAR (lexeme lexbuf) }
   | eof                 { EOF }
 
 {

@@ -153,6 +153,16 @@ non_app: // non-application
     {  Bool false }
   | INT
     {  Int $1 }
+  | STAR
+    {  Var "*" }
+  | ALTERNATIVE
+    {  Var "|" }
+  | SET_EQUAL
+    {  Var "=" }
+  | TARROW
+    {  Var "->" }
+  | DARROW
+    {  Var "=>" }
   | nil
     {  Nil $1 }
   | LPAREN expr RPAREN
