@@ -198,23 +198,12 @@ let rec expr (env : Environment.parser_context) e =
 
 and get_graph_parser env : (Presyntax.expr, Syntax.expr) t =
   let app_parser env =
-    let rec parse_app app tail =
-      let open ListMonad in
-      match Seq.uncons tail with
-      | None -> return app
-      | Some (arg0, tail) ->
-          let@ arg0 = expr env arg0 in
-          parse_app (Syntax.Apply (app, arg0)) tail
-    in
-
-    let* args = iter1 get in
+    let* args = iter1 
+      (let* x = get in
+      return_many @@ expr env x) in
     match Seq.uncons args with
     | None -> fail
-    | Some (head, tail) ->
-        return_many
-          (let open ListMonad in
-           let@ head = expr env head in
-           parse_app head tail)
+    | Some (head, tail) -> return @@ Seq.fold_left (fun app arg -> Syntax.Apply (app, arg)) head tail
   in
   let g = env.operators in
   let rec precedences (ps : Operator.precedence list) inp =
