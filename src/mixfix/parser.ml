@@ -70,7 +70,7 @@ let ( @@@ ) p1 p2 =
   return (x, y)
 
 (** Concatenation of parsers, discarding left *)
-let ( <@@@ ) p1 p2 =
+let ( >@@@ ) p1 p2 =
   let* _ = p1 in
   let* x = p2 in
   return x
@@ -96,10 +96,10 @@ let iter1 p =
 
 let rec between p = function
   | [] -> assert false
-  | [ k ] -> kw k <@@@ return Seq.empty
+  | [ k ] -> kw k >@@@ return Seq.empty
   | k :: ks ->
       kw k
-      <@@@
+      >@@@
       let* arg0 = p in
       let* args = between p ks in
       return @@ Seq.cons arg0 args
