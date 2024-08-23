@@ -51,8 +51,8 @@ let string_of_precedence (p, lst) =
   Printf.sprintf "Prec. %d:\n%s" p 
   @@ String.concat "\n" 
   @@ List.map (fun (fx, lst) -> 
-      Printf.sprintf " - fx:%s:\n%s" (string_of_fixity fx) (
-        String.concat "\n + " (List.map string_of_op lst)
+      Printf.sprintf " - fx:%s:\n   %s" (string_of_fixity fx) (
+        String.concat "\n   " (List.map string_of_op lst)
         )
     ) lst
     

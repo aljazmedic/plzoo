@@ -57,28 +57,25 @@ let string_of_expr e =
 	| Nil ty ->         (10, "[" ^ (Presyntax.string_of_type ty) ^ "]")
 	| Fst e ->           (9, "fst " ^ (to_str 9 e))
 	| Snd e ->           (9, "snd " ^ (to_str 9 e))
-	| Apply (e1, e2) ->
-    (* (9, "<app>") *)
+	| Apply (e1, e2) ->   (* (10, "<app>") *)
 	    (9, (to_str 8 e1) ^ " " ^ (to_str 9 e2))
-	| Times (e1, e2) ->  (9, (to_str 8 e1) ^ " * " ^ (to_str 8 e2))
-	| Divide (e1, e2) -> (9, (to_str 8 e1) ^ " / " ^ (to_str 8 e2))
-	| Mod (e1, e2) ->    (9, (to_str 8 e1) ^ " % " ^ (to_str 8 e2))
-	| Plus (e1, e2) ->   (9, (to_str 8 e1) ^ " + " ^ (to_str 8 e2))
-	| Minus (e1, e2) ->  (9, (to_str 8 e1) ^ " - " ^ (to_str 8 e2))
-	| Cons (e1, e2) ->   (9, (to_str 8 e1) ^ " :: " ^(to_str 8 e2))
-	| Equal (e1, e2) ->  (9, (to_str 8 e1) ^ " = " ^ (to_str 8 e2))
-	| Less (e1, e2) ->   (9, (to_str 8 e1) ^ " < " ^ (to_str 8 e2))
-	| If (e1, e2, e3) -> (9, "if " ^ (to_str 8 e1) ^ " then " ^
-				(to_str 8 e2) ^ " else " ^ (to_str 8 e3))
+	| Times (e1, e2) ->  (8, (to_str 7 e1) ^ " * " ^ (to_str 8 e2))
+	| Divide (e1, e2) -> (8, (to_str 7 e1) ^ " / " ^ (to_str 8 e2))
+	| Mod (e1, e2) ->    (8, (to_str 7 e1) ^ " % " ^ (to_str 8 e2))
+	| Plus (e1, e2) ->   (7, (to_str 6 e1) ^ " + " ^ (to_str 7 e2))
+	| Minus (e1, e2) ->  (7, (to_str 6 e1) ^ " - " ^ (to_str 7 e2))
+	| Cons (e1, e2) ->   (6, (to_str 6 e1) ^ " :: " ^ (to_str 5 e2))
+	| Equal (e1, e2) ->  (5, (to_str 5 e1) ^ " = " ^ (to_str 5 e2))
+	| Less (e1, e2) ->   (5, (to_str 5 e1) ^ " < " ^ (to_str 5 e2))
+	| If (e1, e2, e3) -> (4, "if " ^ (to_str 4 e1) ^ " then " ^
+				(to_str 4 e2) ^ " else " ^ (to_str 4 e3))
 	| Match (e1, ty, e2, x, y, e3) ->
 	    (3, "match " ^ (to_str 3 e1) ^ " with " ^
 	       "[" ^ (Presyntax.string_of_type ty) ^ "] -> " ^ (to_str 3 e2) ^ " | " ^
 	       x ^ "::" ^ y ^ " -> " ^ (to_str 3 e3))
 	| Fun (x, ty, e) ->
-    (* (10, "<fun>") *)
 	    (2, "fun " ^ x ^ " : " ^ (Presyntax.string_of_type ty) ^ " -> " ^ (to_str 0 e))
 	| Rec (x, ty, e) ->
-    (* (10, "<rec>") *)
 	    (1, "rec " ^ x ^ " : " ^ (Presyntax.string_of_type ty) ^ " is " ^ (to_str 0 e))
 
     in
